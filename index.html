@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>System Monitor</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0a0a0a;
+      color: #ffffff;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 8px;
+      color: #00ff88;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      color: #555;
+      font-size: 0.85rem;
+      margin-bottom: 50px;
+      letter-spacing: 1px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 30px;
+      width: 100%;
+      max-width: 900px;
+    }
+
+    .card {
+      background: #111;
+      border: 1px solid #1a1a1a;
+      border-radius: 16px;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .card-title {
+      font-size: 0.75rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #555;
+    }
+
+    .gauge-wrap {
+      position: relative;
+      width: 160px;
+      height: 160px;
+    }
+
+    svg.gauge {
+      transform: rotate(-90deg);
+      width: 160px;
+      height: 160px;
+    }
+
+    .gauge-bg {
+      fill: none;
+      stroke: #1a1a1a;
+      stroke-width: 12;
+    }
+
+    .gauge-fill {
+      fill: none;
+      stroke-width: 12;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.6s ease;
+    }
+
+    .gauge-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .gauge-percent {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .gauge-label {
+      font-size: 0.7rem;
+      color: #555;
+      margin-top: 4px;
+    }
+
+    .card-detail {
+      font-size: 0.8rem;
+      color: #444;
+      text-align: center;
+      line-height: 1.8;
+    }
+
+    .cpu .gauge-fill { stroke: #00ff88; }
+    .memory .gauge-fill { stroke: #00aaff; }
+    .disk .gauge-fill { stroke: #ff6b35; }
+
+    .cpu .gauge-percent { color: #00ff88; }
+    .memory .gauge-percent { color: #00aaff; }
+    .disk .gauge-percent { color: #ff6b35; }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: #00ff88;
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+      display: inline-block;
+      margin-right: 6px;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    .status-bar {
+      margin-top: 40px;
+      font-size: 0.75rem;
+      color: #333;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>⚡ System Monitor</h1>
+  <p class="subtitle"><span class="live-dot"></span>LIVE — updates every second</p>
+
+  <div class="grid">
+    <div class="card cpu">
+      <div class="card-title">CPU Load</div>
+      <div class="gauge-wrap">
+        <svg class="gauge" viewBox="0 0 160 160">
+          <circle class="gauge-bg" cx="80" cy="80" r="65"/>
+          <circle class="gauge-fill" id="cpu-fill" cx="80" cy="80" r="65"
+            stroke-dasharray="408" stroke-dashoffset="408"/>
+        </svg>
+        <div class="gauge-text">
+          <div class="gauge-percent" id="cpu-pct">0%</div>
+          <div class="gauge-label">usage</div>
+        </div>
+      </div>
+      <div class="card-detail" id="cpu-detail">Loading...</div>
+    </div>
+
+    <div class="card memory">
+      <div class="card-title">Memory</div>
+      <div class="gauge-wrap">
+        <svg class="gauge" viewBox="0 0 160 160">
+          <circle class="gauge-bg" cx="80" cy="80" r="65"/>
+          <circle class="gauge-fill" id="mem-fill" cx="80" cy="80" r="65"
+            stroke-dasharray="408" stroke-dashoffset="408"/>
+        </svg>
+        <div class="gauge-text">
+          <div class="gauge-percent" id="mem-pct">0%</div>
+          <div class="gauge-label">used</div>
+        </div>
+      </div>
+      <div class="card-detail" id="mem-detail">Loading...</div>
+    </div>
+
+    <div class="card disk">
+      <div class="card-title">Disk</div>
+      <div class="gauge-wrap">
+        <svg class="gauge" viewBox="0 0 160 160">
+          <circle class="gauge-bg" cx="80" cy="80" r="65"/>
+          <circle class="gauge-fill" id="disk-fill" cx="80" cy="80" r="65"
+            stroke-dasharray="408" stroke-dashoffset="408"/>
+        </svg>
+        <div class="gauge-text">
+          <div class="gauge-percent" id="disk-pct">0%</div>
+          <div class="gauge-label">used</div>
+        </div>
+      </div>
+      <div class="card-detail" id="disk-detail">Loading...</div>
+    </div>
+  </div>
+
+  <div class="status-bar" id="last-update">Waiting for data...</div>
+
+  <script>
+    function setGauge(fillId, percent) {
+      const circumference = 408;
+      const offset = circumference - (percent / 100) * circumference;
+      document.getElementById(fillId).style.strokeDashoffset = offset;
+    }
+
+    async function fetchStats() {
+      try {
+        const res = await fetch('/stats');
+        const data = await res.json();
+
+        // CPU
+        document.getElementById('cpu-pct').textContent = data.cpu + '%';
+        document.getElementById('cpu-detail').textContent = `Current Load: ${data.cpu}%`;
+        setGauge('cpu-fill', data.cpu);
+
+        // Memory
+        document.getElementById('mem-pct').textContent = data.memory.percent + '%';
+        document.getElementById('mem-detail').textContent =
+          `${data.memory.used} GB used of ${data.memory.total} GB`;
+        setGauge('mem-fill', data.memory.percent);
+
+        // Disk
+        document.getElementById('disk-pct').textContent = data.disk.percent + '%';
+        document.getElementById('disk-detail').textContent =
+          `${data.disk.used} GB used of ${data.disk.total} GB`;
+        setGauge('disk-fill', data.disk.percent);
+
+        // Timestamp
+        const now = new Date();
+        document.getElementById('last-update').textContent =
+          `Last updated: ${now.toLocaleTimeString()}`;
+
+      } catch (err) {
+        console.error('Failed to fetch stats:', err);
+      }
+    }
+
+    fetchStats();
+    setInterval(fetchStats, 1000);
+  </script>
+
+</body>
+</html>
