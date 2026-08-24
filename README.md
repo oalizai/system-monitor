@@ -1,4 +1,4 @@
-# ⚡ Real-Time System Monitor Dashboard
+# Real-Time System Monitor Dashboard
 
 A live system monitoring dashboard built with Node.js and vanilla JavaScript.
 Displays real-time CPU, Memory, and Disk usage with animated gauges that update every second.
@@ -23,5 +23,3 @@ node server.js
 
 Then open http://localhost:3000 in your browser.
 
-## Screenshot
-[Add screenshot here]
